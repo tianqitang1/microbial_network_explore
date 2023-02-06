@@ -1,0 +1,37 @@
+---
+title: "Experiment design"
+bibliography: bib.bib
+link-citations: yes
+---
+
+The experiment of assessing different network inference methods can be split into two folds: species abundance time-series simulation and solving and evaluating the network.
+
+## Simulation methods
+
+The generalized Lotka-Volterra (gLV) model is the most widely used method for simulating a microbial community. MiSDEED [@Chlenski_Hsu_Peer_2022] is a Python package based on gLV, in addition to regular gLV simulations, it also considers the environmental perturbations/interventions. After the absolute abundance of species $\bf{Z}$ is generated, MiSDEED also calculates the relative abundance $\bf{Y}$, and finally samples the observed relative abundance $\bf{X}$ to simulate the read sampling.
+
+In the gLV simulation, there are multiple adjustable parameters, including the growth rate $g$, the interaction matrix $\bf{M}$ and the perturbation over time.
+Among these parameters, the adjacency matrix $\bf{A}$ determines the sturcture of the network, and the weight matrix $\bf{M}$ determines the interaction between two species where $\bf{M}_{ij}$ indicates the effect of species $i$ to species $j$.
+
+Different models were proposed to generate the adjacency matrix $\bf{A}$, and the most widely used models are the Erdős–Rényi model, the Watts–Strogatz model, the Barabási–Albert model and the Chung–Lu model.
+Suppose there are $n$ species in the network, and the average degree of the network is $\langle k \rangle = \frac{2m}{n}$, where $m$ is the total number of edges in the network.
+
+- The Erdős–Rényi model
+
+    This model is also called random network.
+    It is the simplest model that every edge is generated independently with a probability $p$.
+
+- The Watts–Strogatz model
+
+- The Barabási–Albert model
+
+- The Chung–Lu model
+    This model is an extension of the Barabási–Albert model.
+
+## Network inference methods
+
+The network inference methods can be divided into two categories: the methods that only consider the relative abundance and the methods that consider both the relative abundance and the absolute abundance.
+
+### Central log-ratio transformation
+
+The central log-ratio transformation (CLR) is a method that only considers the relative abundance.

@@ -1,3 +1,10 @@
+.vscode/
+data/
+software/
+.Rhistory
+docs/research_plan_files
+c.attach()
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
