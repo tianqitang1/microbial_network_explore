@@ -1,0 +1,9 @@
+network:
+  n_vertices: 20
+  avg_degree: 4
+
+simulation:
+  time_points: 1000
+  time_step: 0.01
+  downsample: 120
+  noise_var: 0.01

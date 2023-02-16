@@ -4,6 +4,10 @@ software/
 .Rhistory
 docs/research_plan_files
 c.attach()
+docs/*.docx
+docs/*.pdf
+docs/*.html
+hirano_etal/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

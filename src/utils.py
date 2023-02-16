@@ -1,9 +1,10 @@
 import igraph as ig
 import numpy as np
+import random
 
 from misdeed.OmicsGenerator import OmicsGenerator
 
-def gen_graph(n, k, network_type='random', interaction_type='random', max_interaction_strength=0.5):
+def gen_graph(n, k, network_type='random', interaction_type='random', max_interaction_strength=0.5, seed=42):
     """Generate a graph and interaction matrix.
 
     Parameters
@@ -29,6 +30,7 @@ def gen_graph(n, k, network_type='random', interaction_type='random', max_intera
         Interaction matrix.
 
     """
+    random.seed(seed)
     m = n * k // 2
     if network_type == 'random':
         g = ig.Graph.Erdos_Renyi(n=n, m=m)
@@ -107,7 +109,11 @@ def simulate_glv(time_points=1000, time_step=1e-2, num_taxa=100, avg_degree=10, 
     x : np.array
         Relative abundances.
     y : np.array
-        Relative abundances with read noise.
+        Simulated read abundances with read noise.
+    adj : np.array
+        Adjacency matrix.
+    M : np.array
+        Interaction strength matrix.
 
     """
     adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
@@ -133,3 +139,7 @@ def simulate_glv(time_points=1000, time_step=1e-2, num_taxa=100, avg_degree=10, 
     )
     z, x, y = z['mgx'], x['mgx'], y['mgx']
     return z, x, y, adj, M
+
+def test_seed():
+    np.random.seed(42)
+    print(np.random.rand(10))
