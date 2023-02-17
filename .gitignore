@@ -3,11 +3,13 @@ data/
 software/
 .Rhistory
 docs/research_plan_files
+docs/network_inference_methods_files
 c.attach()
 docs/*.docx
 docs/*.pdf
 docs/*.html
 hirano_etal/
+elsa/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
