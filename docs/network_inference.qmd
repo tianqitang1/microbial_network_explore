@@ -1,0 +1,33 @@
+---
+title: "Exploration of microbial network inference methods"
+author: "Tianqi Tang"
+bibliography: "bib.bib"
+link-citations: yes
+---
+
+## Introduction
+
+Network inference is a fundamental problem in systems biology. It aims to infer the interactions between genes from gene expression data. The inferred network can be used to understand the biological processes and to predict the phenotypes of the genes. The network inference problem can be formulated as a graph inference problem. The graph is a set of nodes and edges. The nodes represent the genes and the edges represent the interactions between genes. The graph inference problem can be solved by a variety of methods. In this project, we will explore the state-of-the-art methods for network inference and compare their performance.
+
+## Network inference methods
+
+The network inference methods currently used are listed below.
+
+<!-- [to fill different methods]{style="color: red"} -->
+- Pearson
+
+- Pearson partial
+
+- SparCC
+
+- SPIEC-EASI
+
+### Compositional Lotka-Volterra (cLV) model
+
+### NetGAM Transformation
+
+[@Gleich_Cram_Weissman_Caron_2022] proposed a generalized additive model (GAM) based data transformation method.
+The main target of this method is to remove time-series signals from the abundance data before downstream network inference steps.
+In the paper, the authors showed using GAM with Spearman correalation (GAM-SCC), and graphical lasso analysis (GAM-Glasso) can improve the performance comparing to the original methods.
+
+- Graphical lasso 
