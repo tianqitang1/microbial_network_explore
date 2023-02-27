@@ -11,4 +11,4 @@ This document is a brief description of available network inference methods. It 
 
 ### Compositional Lotka-Volterra
 
-[@Joseph_Shenhav_Xavier_Halperin_Peer_2020] proposed a framework based on compositional Lotka-Volterra (cLV) equations to infer the network structure and the parameters of the network. The framework is based on the following assumptions:
+[@Joseph_Shenhav_Xavier_Halperin_Peer_2020] proposed a framework based on compositional Lotka-Volterra (cLV) equations to infer the network structure and the parameters of the network.
