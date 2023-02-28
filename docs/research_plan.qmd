@@ -47,6 +47,10 @@ The network inference methods currently used are listed below.
 
 - SPIEC-EASI
 
+- Compositional Lotka-Volterra (cLV)
+
+    The compositional Lotka-Volterra (cLV) model [@Joseph_Shenhav_Xavier_Halperin_Peer_2020] is a model that can be used to infer the network structure from the relative abundance data.
+
 ## Preliminary results
 
 ### Comparison between naive gLV model and MiSDEED
