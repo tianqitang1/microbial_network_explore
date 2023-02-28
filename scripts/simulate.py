@@ -9,7 +9,7 @@ import src.utils as utils
 if __name__ == "__main__":
 
     # Read the config file and set the parameters
-    config = yaml.load(open("scripts/config.yaml", "r"), Loader=CLoader)
+    config = yaml.load(open("src/scripts/config.yaml", "r"), Loader=CLoader)
 
     n_vertices = config["network"]["n_vertices"]
     avg_degree = config["network"]["avg_degree"]
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     saving_dir_path = os.path.join(path, f'n{n_vertices}_k{avg_degree}_{network_type}_{interaction_type}_{max_interaction_strength}')
     if not os.path.exists(saving_dir_path):
         os.makedirs(saving_dir_path)
-    shutil.copyfile("scripts/config.yaml", os.path.join(saving_dir_path, "config.yaml")) # Copy the config file to the data directory
+    shutil.copyfile("src/scripts/config.yaml", os.path.join(saving_dir_path, "config.yaml")) # Copy the config file to the data directory
 
     # Simulate data using the gLV model
     z, x, y, adj, M = utils.simulate_glv(
