@@ -29,6 +29,8 @@ def gen_graph(
         The default is 'random'.
     max_interaction_strength : float, optional
         Maximum interaction strength. The default is 0.5.
+    seed : int, optional
+        Random seed. The default is 42.
 
     Returns
     -------
@@ -94,7 +96,7 @@ def gen_graph(
 def simulate_glv(
     num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, noise_var=1e-2, **kwargs
 ):
-    """Simulate a GLV model.
+    """Simulate a GLV model using MisDEED
 
     Parameters
     ----------
@@ -151,6 +153,10 @@ def simulate_glv(
     z, x, y = z["mgx"], x["mgx"], y["mgx"]
     return z, x, y, adj, M
 
+def simulate_noiseless_glv(
+    num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, **kwargs
+):
+    pass
 
 def test_seed():
     np.random.seed(42)
