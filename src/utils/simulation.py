@@ -1,9 +1,9 @@
 import igraph as ig
 import numpy as np
 import random
-
+from rpy2.robjects.packages import importr
+from rpy2.robjects import numpy2ri, default_converter
 from misdeed.OmicsGenerator import OmicsGenerator
-
 
 def gen_graph(
     n,
@@ -11,6 +11,8 @@ def gen_graph(
     network_type="random",
     interaction_type="random",
     max_interaction_strength=0.5,
+    adj=None,
+    M=None,
     seed=42,
 ):
     """Generate a graph and interaction matrix.
@@ -29,6 +31,10 @@ def gen_graph(
         The default is 'random'.
     max_interaction_strength : float, optional
         Maximum interaction strength. The default is 0.5.
+    adj : np.array, optional
+        Adjacency matrix. If provided, the network_type argument will be ignored. The default is None.
+    M : np.array, optional
+        Interaction matrix. If provided, the interaction_type argument will be ignored. The default is None.
     seed : int, optional
         Random seed. The default is 42.
 
@@ -41,20 +47,24 @@ def gen_graph(
 
     """
     random.seed(seed)
-    m = n * k // 2
-    if network_type == "random":
-        g = ig.Graph.Erdos_Renyi(n=n, m=m)
-    elif network_type == "scale-free":
-        g = ig.Graph.Static_Power_Law(n=n, m=m, exponent_out=2.2, exponent_in=-1)
-    elif network_type == "small-world":
-        g = ig.Graph.Watts_Strogatz(dim=1, size=n, nei=k // 2, p=0.05)
-    elif network_type == "barabasi-albert":
-        g = ig.Graph.Barabasi(n=n, m=k // 2)
-    else:
-        raise ValueError(f"Unknown network type: {network_type}")
+    np.random.seed(seed)
 
-    adj = g.get_adjacency()
-    adj = np.array(adj.data)
+    if adj is None:
+        m = n * k // 2 # number of edges
+        if network_type == "random":
+            g = ig.Graph.Erdos_Renyi(n=n, m=m)
+        elif network_type == "scale-free":
+            g = ig.Graph.Static_Power_Law(n=n, m=m, exponent_out=2.2, exponent_in=-1)
+        elif network_type == "small-world":
+            g = ig.Graph.Watts_Strogatz(dim=1, size=n, nei=k // 2, p=0.05)
+        elif network_type == "barabasi-albert":
+            g = ig.Graph.Barabasi(n=n, m=k // 2)
+        else:
+            raise ValueError(f"Unknown network type: {network_type}")
+        adj = g.get_adjacency()
+        adj = np.array(adj.data)
+    else:
+        g = ig.Graph.Adjacency(adj.tolist())
 
     edge_list = g.get_edgelist()
 
@@ -93,9 +103,7 @@ def gen_graph(
     return adj, M
 
 
-def simulate_glv(
-    num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, noise_var=1e-2, **kwargs
-):
+def simulate_glv(num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, noise_var=1e-2, **kwargs):
     """Simulate a GLV model using MisDEED
 
     Parameters
@@ -153,10 +161,50 @@ def simulate_glv(
     z, x, y = z["mgx"], x["mgx"], y["mgx"]
     return z, x, y, adj, M
 
-def simulate_noiseless_glv(
-    num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, **kwargs
-):
-    pass
+
+def simulate_noiseless_glv(num_taxa=100, avg_degree=10, time_points=1000, downsample=20, **kwargs):
+    """Simulate a noiseless GLV model with the R package seqtime
+
+    Parameters
+    ----------
+    num_taxa : int, optional
+        Number of taxon in the network. The default is 100.
+    avg_degree : int, optional
+        Average degree of each taxon. The default is 10.
+    time_points : int, optional
+        Number of time points. The default is 1000.
+    downsample : int, optional
+        Downsample raio. The default is 20, meaning the abundance data is record every 20-th time point.
+    **kwargs : dict
+        Keyword arguments. Passed to gen_graph().
+
+    Returns
+    -------
+    abundance : np.array
+        Absolute abundances.
+    adj : np.array
+        Adjacency matrix.
+    M : np.array
+        Interaction strength matrix.
+
+    """
+
+    adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
+
+    # Load seqtime package in R if not loaded
+    try:
+        seqtime
+    except NameError:
+        seqtime = importr("seqtime")
+
+    nv_cv_rules = default_converter + numpy2ri.converter
+    with nv_cv_rules:
+        abundance = seqtime.generateDataSet(time_points, M, count=num_taxa*1000, mode=4)
+
+    abundance = abundance[:, ::downsample]
+
+    return abundance, adj, M
+
 
 def test_seed():
     np.random.seed(42)
