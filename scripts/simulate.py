@@ -5,10 +5,9 @@ from yaml import CLoader
 import shutil
 
 # import src.utils.utils as utils
-import utils.utils as utils
+import utils.simulation as simulation
 
 if __name__ == "__main__":
-
     # Read the config file and set the parameters
     config = yaml.load(open("scripts/config.yaml", "r"), Loader=CLoader)
 
@@ -25,13 +24,13 @@ if __name__ == "__main__":
     scale_simulation = config["simulation"]["scale_simulation"]
 
     path = config["path"]["data_dir"]
-    saving_dir_path = os.path.join(path, f'n{n_vertices}_k{avg_degree}_{network_type}_{interaction_type}_{max_interaction_strength}')
+    saving_dir_path = os.path.join(path, f"n{n_vertices}_k{avg_degree}_{network_type}_{interaction_type}_{max_interaction_strength}")
     if not os.path.exists(saving_dir_path):
         os.makedirs(saving_dir_path)
-    shutil.copyfile("scripts/config.yaml", os.path.join(saving_dir_path, "config.yaml")) # Copy the config file to the data directory
+    shutil.copyfile("scripts/config.yaml", os.path.join(saving_dir_path, "config.yaml"))  # Copy the config file to the data directory
 
     # Simulate data using the gLV model
-    z, x, y, adj, M = utils.simulate_glv(
+    z, x, y, adj, M = simulation.simulate_glv(
         num_taxa=n_vertices,
         avg_degree=avg_degree,
         time_points=time_points,
