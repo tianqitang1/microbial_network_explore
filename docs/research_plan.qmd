@@ -1,14 +1,28 @@
 ---
-title: "Experiment design"
+title: "Network inference for microbial community"
 bibliography: bib.bib
 link-citations: yes
 ---
+
+<!-- March 3rd, Introduction part -->
+In this study, we are trying to assess the performance of different network inference methods for microbial community time-series data.
+
+The first difficulty is the compositinality of the data, which is a common problem in microbiome analysis.
+When sequencing the microbiome, the reads are first amplified, and then sequenced.
+The sequenced reads are grouped into operational taxonomic units (OTUs) or amplicon sequence variants (ASVs) based on the similarity of the sequences using computational methods.
+All steps introduce compositonality into the data, making the final abundance numbers relative to the total number of reads, which is not the absolute abundance.
+
+The second difficulty is the inconsistency between the high dimensions of the data and the low number of time points.
+In the SPOT dataset, there number of ASVs is over 70,000 but the sampling is only conducted monthly, it is impractical to hope for a daily, or even hourly sampling.
+If we throw away the taxa showing significant statistical characteristics, or taxa with high sparsity (0 for most of the time points), the dimension of the data will be reduced.
+However, this risk losing potential important taxa, there was one  [liv's paper], there might also be dominant taxon which makes its abundance variance small, but contribute a lot to the community dynamics.
 
 The experiment of assessing different network inference methods can be split into two folds: species abundance time-series simulation and solving and evaluating the network.
 
 ## Simulation methods
 
-The generalized Lotka-Volterra (gLV) model is the most widely used method for simulating a microbial community. MiSDEED [@Chlenski_Hsu_Peer_2022] is a Python package based on gLV, in addition to regular gLV simulations, it also considers the environmental perturbations/interventions. After the absolute abundance of species $\textbf{Z}$ is generated, MiSDEED also calculates the relative abundance $\textbf{Y}$, and finally samples the observed relative abundance $\textbf{X}$ to simulate the read sampling.
+The generalized Lotka-Volterra (gLV) model is the most widely used method for simulating a microbial community. MiSDEED [@Chlenski_Hsu_Peer_2022] is a Python package based on gLV, in addition to regular gLV simulations, it also considers the environmental perturbations/interventions.
+After the absolute abundance of species $\textbf{Z}$ is generated, MiSDEED also calculates the relative abundance $\textbf{Y}$, and finally samples the observed relative abundance $\textbf{X}$ to simulate the read sampling.
 
 In the gLV simulation, there are multiple adjustable parameters, including the growth rate $g$, the interaction matrix $\textbf{M}$ and the perturbation over time.
 Among these parameters, the adjacency matrix $\textbf{A}$ determines the structure of the network, and the weight matrix $\textbf{M}$ determines the interaction between two species where $\textbf{M}_{ij}$ indicates the effect of species $i$ to species $j$.
@@ -47,9 +61,24 @@ The network inference methods currently used are listed below.
 
 - SPIEC-EASI
 
+<!-- Feb 28 2023, added clv -->
 - Compositional Lotka-Volterra (cLV)
 
     The compositional Lotka-Volterra (cLV) model [@Joseph_Shenhav_Xavier_Halperin_Peer_2020] is a model that can be used to infer the network structure from the relative abundance data.
+    The code to reproduce the result in [@Joseph_Shenhav_Xavier_Halperin_Peer_2020] is available at [GitHub](https://github.com/tyjo/clv), but it is not well documented and the code is not well organized.
+    After digging through the codes, we can see that the main module for compting the cLV model is located in `compositional_lotka_volterra.py`, the authors also implemented the generalized Lotka-Volterra (gLV) model in `generalized_lotka_volterra.py`.
+
+<!-- March 1 2023, section about evaluation -->
+## Performance evaluation
+
+It is difficult to evaluate the performance of different network inference methods, as different methods are developed with different purposes and it is hard to find a common ground for comparison.
+
+The [@Hirano_Takemoto_2019] assessed the performance according to the adjacency matrix, two metrics were used, the area under the precision-recall curve (PR-AUC) a
+
+However, the PR-AUC
+
+In the 
+    
 
 ## Preliminary results
 
