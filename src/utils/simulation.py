@@ -5,6 +5,7 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects import numpy2ri, default_converter
 from misdeed.OmicsGenerator import OmicsGenerator
 
+
 def gen_graph(
     n,
     k,
@@ -22,7 +23,7 @@ def gen_graph(
     n : int
         Number of nodes.
     k : int
-        Number of edges per node.
+        Average number of edges per node.
     network_type : str, optional
         Type of graph. Choices are 'random', 'scale-free', 'small-world', and 'barabasi-albert'.
         The default is 'random'.
@@ -49,8 +50,26 @@ def gen_graph(
     random.seed(seed)
     np.random.seed(seed)
 
+    assert n > 0 and isinstance(n, int), f"Number of nodes must be a positive integer: {n}"
+    assert k > 0 and isinstance(k, int), f"Average degree for each node must be a positive integer: {k}"
+
+    assert network_type in [
+        "random",
+        "scale-free",
+        "small-world",
+        "barabasi-albert",
+    ], f"Unknown network type: {network_type}"
+
+    assert interaction_type in [
+        "random",
+        "mutualism",
+        "competition",
+        "predator-prey",
+        "mix",
+    ], f"Unknown interaction type: {interaction_type}"
+
     if adj is None:
-        m = n * k // 2 # number of edges
+        m = n * k // 2  # number of edges
         if network_type == "random":
             g = ig.Graph.Erdos_Renyi(n=n, m=m)
         elif network_type == "scale-free":
@@ -103,13 +122,13 @@ def gen_graph(
     return adj, M
 
 
-def simulate_glv(num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, noise_var=1e-2, **kwargs):
+def simulate_glv(num_taxa=20, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, noise_var=1e-2, **kwargs):
     """Simulate a GLV model using MisDEED
 
     Parameters
     ----------
     num_taxa : int, optional
-        Number of taxon in the network. The default is 100.
+        Number of taxon in the network. The default is 20.
     avg_degree : int, optional
         Average degree of each taxon. The default is 10.
     time_points : int, optional
@@ -126,17 +145,25 @@ def simulate_glv(num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, 
     Returns
     -------
     z : np.array
-        Absolute abundances.
+        Absolute abundances. With shape (num_taxa, time_points).
     x : np.array
-        Relative abundances.
+        Relative abundances. With shape (num_taxa, time_points//downsample).
     y : np.array
-        Simulated read abundances with read noise.
+        Simulated read abundances with read noise. With shape (num_taxa, time_points//downsample).
     adj : np.array
-        Adjacency matrix.
+        Adjacency matrix. With shape (num_taxa, num_taxa).
     M : np.array
-        Interaction strength matrix.
+        Interaction strength matrix. With shape (num_taxa, num_taxa).
 
     """
+
+    assert num_taxa > 0 and isinstance(num_taxa, int), f"Number of taxa must be a positive integer: {num_taxa}"
+    assert avg_degree > 0 and isinstance(avg_degree, int), f"Average degree must be a positive integer: {avg_degree}"
+    assert time_points > 0 and isinstance(time_points, int), f"Number of time points must be a positive integer: {time_points}"
+    assert time_step > 0, f"Time step must be positive: {time_step}"
+    assert downsample > 0 and isinstance(downsample, int), f"Downsample ratio must be a positive integer: {downsample}"
+    assert noise_var >= 0, f"Noise variance must be non-negative: {noise_var}"
+
     adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
 
     generator = OmicsGenerator(
@@ -159,16 +186,17 @@ def simulate_glv(num_taxa=100, avg_degree=10, time_points=1000, time_step=1e-2, 
         downsample=downsample,
     )
     z, x, y = z["mgx"], x["mgx"], y["mgx"]
+    z, x, y = z.T, x.T, y.T
     return z, x, y, adj, M
 
 
-def simulate_noiseless_glv(num_taxa=100, avg_degree=10, time_points=1000, downsample=20, **kwargs):
+def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsample=20, **kwargs):
     """Simulate a noiseless GLV model with the R package seqtime
 
     Parameters
     ----------
     num_taxa : int, optional
-        Number of taxon in the network. The default is 100.
+        Number of taxon in the network. The default is 20.
     avg_degree : int, optional
         Average degree of each taxon. The default is 10.
     time_points : int, optional
@@ -181,13 +209,18 @@ def simulate_noiseless_glv(num_taxa=100, avg_degree=10, time_points=1000, downsa
     Returns
     -------
     abundance : np.array
-        Absolute abundances.
+        Absolute abundances. With shape (num_taxa, time_points//downsample).
     adj : np.array
-        Adjacency matrix.
+        Adjacency matrix. With shape (num_taxa, num_taxa).
     M : np.array
-        Interaction strength matrix.
+        Interaction strength matrix. With shape (num_taxa, num_taxa).
 
     """
+
+    assert num_taxa > 0 and isinstance(num_taxa, int), f"Number of taxa must be a positive integer: {num_taxa}"
+    assert avg_degree > 0 and isinstance(avg_degree, int), f"Average degree must be a positive integer: {avg_degree}"
+    assert time_points > 0 and isinstance(time_points, int), f"Number of time points must be a positive integer: {time_points}"
+    assert downsample > 0 and isinstance(downsample, int), f"Downsample ratio must be a positive integer: {downsample}"
 
     adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
 

@@ -9,7 +9,7 @@ simulation:
   time_points: 1000
   time_step: 0.01
   downsample: 20
-  noise_var: 0.01
+  noise_var: 0.00
   scale_simulation: 10
 
 path:
