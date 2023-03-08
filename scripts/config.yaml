@@ -1,6 +1,6 @@
 network:
   n_vertices: 20
-  avg_degree: 4
+  avg_degree: 5
   network_type: random # random, small-world, scale-free
   interaction_type: random # random, mutualism, competition, predator-prey, mix
   max_interaction_strength: 1.0
@@ -8,7 +8,7 @@ network:
 simulation:
   time_points: 1000
   time_step: 0.01
-  downsample: 20
+  downsample: 1
   noise_var: 0.00
   scale_simulation: 10
 

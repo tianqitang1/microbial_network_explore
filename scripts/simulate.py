@@ -24,7 +24,7 @@ if __name__ == "__main__":
     scale_simulation = config["simulation"]["scale_simulation"]
 
     path = config["path"]["data_dir"]
-    saving_dir_path = os.path.join(path, f"n{n_vertices}_k{avg_degree}_{network_type}_{interaction_type}_{max_interaction_strength}")
+    saving_dir_path = os.path.join(path, f"n{n_vertices}_k{avg_degree}_{network_type}_{interaction_type}_{max_interaction_strength}_{time_points}")
     if not os.path.exists(saving_dir_path):
         os.makedirs(saving_dir_path)
     shutil.copyfile("scripts/config.yaml", os.path.join(saving_dir_path, "config.yaml"))  # Copy the config file to the data directory

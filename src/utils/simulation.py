@@ -122,7 +122,7 @@ def gen_graph(
     return adj, M
 
 
-def simulate_glv(num_taxa=20, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, noise_var=1e-2, **kwargs):
+def simulate_glv(num_taxa=20, avg_degree=10, time_points=1000, time_step=1e-2, downsample=20, noise_var=1e-2, adj=None, M=None, **kwargs):
     """Simulate a GLV model using MisDEED
 
     Parameters
@@ -139,17 +139,21 @@ def simulate_glv(num_taxa=20, avg_degree=10, time_points=1000, time_step=1e-2, d
         Downsample raio. The default is 20, meaning the abundance data is record every 20-th time point.
     noise_var : float, optional
         Variance of the noise. The default is 1e-2.
+    adj : np.array, optional
+        Adjacency matrix. If provided, num_taxa, avg_degree and arguments for gen_graph() will be ignored. The default is None.
+    M : np.array, optional
+        Interaction strength matrix. If provided, num_taxa, avg_degree and arguments for gen_graph() will be ignored. The default is None.
     **kwargs : dict
         Keyword arguments. Passed to gen_graph().
 
     Returns
     -------
     z : np.array
-        Absolute abundances. With shape (num_taxa, time_points).
+        Absolute abundances. With shape (time_points, num_taxa).
     x : np.array
-        Relative abundances. With shape (num_taxa, time_points//downsample).
+        Relative abundances. With shape (time_points//downsample, num_taxa).
     y : np.array
-        Simulated read abundances with read noise. With shape (num_taxa, time_points//downsample).
+        Simulated read abundances with read noise. With shape (time_points//downsample, num_taxa).
     adj : np.array
         Adjacency matrix. With shape (num_taxa, num_taxa).
     M : np.array
@@ -164,7 +168,12 @@ def simulate_glv(num_taxa=20, avg_degree=10, time_points=1000, time_step=1e-2, d
     assert downsample > 0 and isinstance(downsample, int), f"Downsample ratio must be a positive integer: {downsample}"
     assert noise_var >= 0, f"Noise variance must be non-negative: {noise_var}"
 
-    adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
+    if adj is not None and M is not None:
+        # Check consistency between adj and M
+        assert np.array_equal(np.triu(adj, k=1), np.triu(M, k=1)!=0) and np.array_equal(np.tril(adj, k=-1), np.tril(M, k=-1)!=0), "Inconsistent adjacency matrix and interaction strength matrix"
+        num_taxa = adj.shape[0]
+    else:
+        adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
 
     generator = OmicsGenerator(
         time_points=time_points,
@@ -186,11 +195,11 @@ def simulate_glv(num_taxa=20, avg_degree=10, time_points=1000, time_step=1e-2, d
         downsample=downsample,
     )
     z, x, y = z["mgx"], x["mgx"], y["mgx"]
-    z, x, y = z.T, x.T, y.T
+    # z, x, y = z.T, x.T, y.T
     return z, x, y, adj, M
 
 
-def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsample=20, **kwargs):
+def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsample=20, adj=None, M=None, **kwargs):
     """Simulate a noiseless GLV model with the R package seqtime
 
     Parameters
@@ -203,13 +212,17 @@ def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsam
         Number of time points. The default is 1000.
     downsample : int, optional
         Downsample raio. The default is 20, meaning the abundance data is record every 20-th time point.
+    adj : np.array, optional
+        Adjacency matrix. If provided, num_taxa, avg_degree and arguments for gen_graph() will be ignored. The default is None.
+    M : np.array, optional
+        Interaction strength matrix. If provided, num_taxa, avg_degree and arguments for gen_graph() will be ignored. The default is None.
     **kwargs : dict
         Keyword arguments. Passed to gen_graph().
 
     Returns
     -------
     abundance : np.array
-        Absolute abundances. With shape (num_taxa, time_points//downsample).
+        Absolute abundances. With shape (time_points//downsample, num_taxa).
     adj : np.array
         Adjacency matrix. With shape (num_taxa, num_taxa).
     M : np.array
@@ -222,7 +235,12 @@ def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsam
     assert time_points > 0 and isinstance(time_points, int), f"Number of time points must be a positive integer: {time_points}"
     assert downsample > 0 and isinstance(downsample, int), f"Downsample ratio must be a positive integer: {downsample}"
 
-    adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
+    if adj is not None and M is not None:
+        # Check consistency between adj and M
+        assert np.array_equal(np.triu(adj, k=1), np.triu(M, k=1)!=0) and np.array_equal(np.tril(adj, k=-1), np.tril(M, k=-1)!=0), "Inconsistent adjacency matrix and interaction strength matrix"
+        num_taxa = adj.shape[0]
+    else:
+        adj, M = gen_graph(num_taxa, avg_degree, **kwargs)
 
     # Load seqtime package in R if not loaded
     try:
@@ -235,6 +253,7 @@ def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsam
         abundance = seqtime.generateDataSet(time_points, M, count=num_taxa*1000, mode=4)
 
     abundance = abundance[:, ::downsample]
+    abundance = abundance.T
 
     return abundance, adj, M
 

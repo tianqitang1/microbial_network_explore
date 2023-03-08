@@ -8,7 +8,8 @@ np <- import("numpy")
 
 set.seed(42)
 
-data_dir <- 'data/simulated/n20_k4_random_random_1.0'
+# data_dir <- 'data/simulated/n20_k4_random_random_1.0'
+data_dir <- 'data/simulated/n20_k5_random_random_1.0_1000'
 
 # config <- yaml::read_yaml("scripts/config.yaml")
 # scale_simulation <- config$simulation$scale_simulation
@@ -24,6 +25,8 @@ z <- t(z)
 x <- t(x)
 y <- t(y)
 y <- y * scale_simulation
+y_rel <- y / apply(y, 1, sum)
+z_rel <- z / apply(z, 1, sum)
 
 target <- c(adj[lower.tri(adj)], adj[upper.tri(adj)])
 
@@ -35,7 +38,11 @@ baseline_prauc <- pr.curve(baseline[target == 1], baseline[target == 0])$auc.int
 cat("Baseline:\t", baseline_prauc, "\n")
 
 # Evaluate Pearson
-pred_pea <- abs(cor(y))
+pred_pea <- abs(cor(y_rel))
+pred_pea <- c(pred_pea[lower.tri(pred_pea)], pred_pea[upper.tri(pred_pea)])
+cat("Pearson:\t", pr.curve(pred_pea[target == 1], pred_pea[target == 0])$auc.integral, "\n")
+
+pred_pea <- abs(cor(z_rel))
 pred_pea <- c(pred_pea[lower.tri(pred_pea)], pred_pea[upper.tri(pred_pea)])
 cat("Pearson:\t", pr.curve(pred_pea[target == 1], pred_pea[target == 0])$auc.integral, "\n")
 
@@ -44,3 +51,9 @@ pred <- NetCoMi::cclasso(t(y), counts = TRUE, pseudo = 0.01)
 pred <- abs(pred$cor.w)
 pred <- c(pred[lower.tri(pred)], pred[upper.tri(pred)])
 cat("CCLasso:\t", pr.curve(pred[target == 1], pred[target == 0])$auc.integral, "\n")
+
+pred <- NetCoMi::cclasso(t(z*100), counts = TRUE, pseudo = 0.01)
+pred <- abs(pred$cor.w)
+pred <- c(pred[lower.tri(pred)], pred[upper.tri(pred)])
+cat("CCLasso:\t", pr.curve(pred[target == 1], pred[target == 0])$auc.integral, "\n")
+

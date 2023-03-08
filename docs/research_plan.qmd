@@ -2,8 +2,11 @@
 title: "Network inference for microbial community"
 bibliography: bib.bib
 link-citations: yes
+editor: 
+    render-on-save: true
+csl: csl.csl
 ---
-
+#
 <!-- March 3rd, Introduction part -->
 In this study, we are trying to assess the performance of different network inference methods for microbial community time-series data.
 
@@ -19,9 +22,10 @@ However, this risk losing potential important taxa, there was one  [liv's paper]
 
 The experiment of assessing different network inference methods can be split into two folds: species abundance time-series simulation and solving and evaluating the network.
 
-## Simulation methods
+## Simulation methods {#sec-simulation}
 
-The generalized Lotka-Volterra (gLV) model is the most widely used method for simulating a microbial community. MiSDEED [@Chlenski_Hsu_Peer_2022] is a Python package based on gLV, in addition to regular gLV simulations, it also considers the environmental perturbations/interventions.
+The generalized Lotka-Volterra (gLV) model is the most widely used method for simulating a microbial community.
+MiSDEED [@Chlenski_Hsu_Peer_2022] is a Python package based on gLV, in addition to regular gLV simulations, it also considers the environmental perturbations/interventions.
 After the absolute abundance of species $\textbf{Z}$ is generated, MiSDEED also calculates the relative abundance $\textbf{Y}$, and finally samples the observed relative abundance $\textbf{X}$ to simulate the read sampling.
 
 In the gLV simulation, there are multiple adjustable parameters, including the growth rate $g$, the interaction matrix $\textbf{M}$ and the perturbation over time.
@@ -50,7 +54,7 @@ However, the random network is not a good representation of the real microbial c
 
     <!-- add scale-free challenge -->
 
-## Network inference methods
+## Network inference methods {#sec-methods}
 
 The network inference methods currently used are listed below.
 
@@ -62,11 +66,13 @@ The network inference methods currently used are listed below.
 - SparCC
 
 - SPIEC-EASI
-    Sparse Inverse Covariance Estimation for Ecological Association Studies (SPIEC-EASI) [@Kurtz_Müller_Miraldi_Littman_Blaser_Bonneau_2015] aims to infere the interaction network based on probabilistic graphical models.
+
+    Sparse Inverse Covariance Estimation for Ecological Association Studies (SPIEC-EASI) [@Kurtz_Müller_Miraldi_Littman_Blaser_Bonneau_2015] aims to infer the interaction network based on probabilistic graphical models.
     Traditional correlation based methods are likely to induce false positive correlations for non-directly connected nodes, SPIEC-EASI uses the inverse covariance matrix (also called precision matrix), which were shown to remove the indirect connections [@Koller_Friedman_2009], to infer the network structure.
     Regarding the compositionality of the data, SPIEC-EASI preprocess the data with centered log-ratio transformation (CLR).
 
-
+    There are more to the methods implemented in SPIEC-EASI, for inferring the graphical model, two methods were implemented: the neighbourhood selection framework using Meinshausen and Bühlmann (MB) algorithm [@Meinshausen_Bühlmann_2006], is essentially treat the problem as a regularized linear regression problem (LASSO).
+    The second method focuses on the estimation of the inverse covariance matrix, and it is shown in the paper that this problem can be reduced to a convex optimization problem.
 
 <!-- Feb 28 2023, added clv -->
 - Compositional Lotka-Volterra (cLV)
@@ -75,19 +81,41 @@ The network inference methods currently used are listed below.
     The code to reproduce the result in [@Joseph_Shenhav_Xavier_Halperin_Peer_2020] is available at [GitHub](https://github.com/tyjo/clv), but it is not well documented and the code is not well organized.
     After digging through the codes, we can see that the main module for compting the cLV model is located in `compositional_lotka_volterra.py`, the authors also implemented the generalized Lotka-Volterra (gLV) model in `generalized_lotka_volterra.py`.
 
+    <!-- In the paper, the author solves the following optimization problem to infer the network structure. -->
+
+    The program predicts the interaction matrix $\textbf{A'}'$, under assumption of either the gLV or cLV model, and then we can calculate the corresponding PR-AUC using the ground truth adjacency matrix $\textbf{A}$.
+
+    
+
+
+
+
 <!-- March 1 2023, section about evaluation -->
-## Performance evaluation
+## Performance evaluation {#sec-evaluation}
 
 It is difficult to evaluate the performance of different network inference methods, as different methods are developed with different purposes and it is hard to find a common ground for comparison.
 Different evaluation methods should also be chosen according to the purpose of the network inference and different network assumptions.
 
 First of all, the network topology is the most important property of the network, determined by the adjacency matrix $\textbf{A}$.
-If the network topology is the main focus, 
+If the network topology is the main focus, we can use the area under precision-recall curve, PR-AUC, to evaluate the performance of different methods.
+Given the result of each method, we first take the absolute value of the result, and the calculate the precision-recall curve accordingly.
 
-However, the PR-AUC
+It is easy to see by taking the absolute value we removed all information about the type of interaction between taxa.
+Because we are generating the simulated data under Lotka-Volterra model, the compositional Lotka-Volterra (cLV) model implemented in [@Joseph_Shenhav_Xavier_Halperin_Peer_2020] is the only method that we can use the root mean square error (RMSE) to evaluate the performance, because they are under the exact same assumptions.
+For methods that can do prediction, RMSE is also a good choice to evaluate the performance by comparing the predicted values with the true values, but in our current stage we are not focusing on the prediction part.
 
-In the 
-    
+Global network properties, such as the average degree, the clustering coefficient, the average and shortest path length, and the degree distribution, are also important properties of the network.
+The following paragraphs will describe a few used in [@Kurtz_Müller_Miraldi_Littman_Blaser_Bonneau_2015].
+For comparison among different methods, the authors selected the top 205 predicted edges and compared it to the true network with 205 OTUs (why 205?).
+
+- Node degree distributions
+
+    Different network types have different degree distributions.
+    The random network has a uniform degree distribution, while the scale-free network has a power-law degree distribution.
+    To make a comparison between the distribution of predicted degrees and the true degrees, the authors used the Kullback-Leibler divergence (KL divergence) to measure the difference between the two distributions.
+
+- Betweenness centrality
+
 
 ## Preliminary results
 
@@ -118,6 +146,39 @@ MiSDEED generates three matrices in the process of the simulation: the absolute 
 The absolute abundance matrix $\textbf{Z}$ is generated by the gLV model, and the relative abundance matrix $\textbf{Y}$ is calculated by dividing the absolute abundance matrix $\textbf{Z}$ by the sum of each row, and the observed relative abundance matrix $\textbf{X}$ is calculated by sampling the relative abundance matrix $\textbf{Y}$ with a Multinomial distribution.
 
 For the naive data, on the other hand, can be considered only the absolute abundance matrix $\textbf{Z}$, with only simple downsampling, it is natrual for us wonder how the noise introduced by MiSDEED affects the performance of different methods.
+
+## March 8th 2023 report
+
+For the current phase of experiment, I am only evaluating the PR-AUC of different methods, other metrics mentioned in the performance evaluation section above are not considered for now.
+
+In my repeated experiment of testing different methods, I observed that the performance of different methods are highly dependent on the parameters selected.
+The following table can just be a special case, more experiments are needed to summarize the general trend.
+For this particular experiment, I set the number of taxa in the network to be $n = 50$, and the average degree of the network to be $\langle k \rangle = 5$, in total $t=100$ time points were sampled using both the naive gLV model and MiSDEED, with greater noise introduced into the data.
+
+First of all, before comparing different methods, we need to draw a baseline.
+To generate the baseline, a $50 \times 50$ matrix with each entry being a random number between 0 and 1 is generated, and then the corresponding PR-AUC is calculated.
+In total 1000 such matrices are generated, and the average PR-AUC is collected, the average PR-AUC score is used as the baseline.
+For the current parameters setting, the baseline is 0.105.
+However, the baseline is highly dependent on the parameters selected, for example, if we suse $n = 25, \langle\rangle = 10, t=10$, the baseline can be as high as 0.42.
+Therefore, it is important for us to compare to the baseline when we are presenting our results.
+
+As for the actual result I got on the current parameters setting, the following table shows the PR-AUC score of different methods.
+
+|                  | naive | MiSDEED |
+|------------------|-------|---------|
+| Pearson          | 0.539 | 0.110   |
+| Precision Matrix | 0.203 | 0.109   |
+| Pearson partial  | 0.396 | 0.131   |
+| SPARCC           | 0.236 | 0.180   |
+| SPIEC-EASI (MB)  | 0.425 | 0.438   |
+| cLV              | 0.118 | 0.109   |
+| gLV              | 0.125 | 0.113   |
+
+From the table, we can see that the time-series dependent methods, cLV and gLV, are the worst performers.
+Because the code distributed by the authors are poorly documented, and from what I see in the code, there are quite a few inssues in their implementation, so we do not know if the poor performance is due to the implementation or the method itself.
+The performance of the other methods are not that bad on the naive data, although it is suprising to see that the Pearson method is performs the best.
+For the MiSDEED data, the performance tanked for all the methods, but the SPIEC-EASI method performed even better than the naive data, comparing to the result of previous experiment which is also in this document, this result is quite suprising, this can be another indicator of the instability of the experiment, and further experiments are needed to confirm it.
+
 
 ## Idea
 
