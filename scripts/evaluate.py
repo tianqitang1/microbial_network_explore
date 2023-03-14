@@ -6,7 +6,7 @@ import numpy as np
 import os
 from sklearn.metrics import average_precision_score
 import pandas as pd
-from utils.transform import clr
+from utils.transformation import clr
 from matplotlib import pyplot as plt
 
 os.chdir('d:\\microbial_network\\microbial_network_explore')
