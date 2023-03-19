@@ -7,10 +7,24 @@ import pandas as pd
 from sklearn.metrics import (
     average_precision_score,
 )
-from rpy2.robjects import r, pandas2ri, default_converter, numpy2ri
+from rpy2 import robjects
+from rpy2.robjects import r, default_converter, pandas2ri, numpy2ri
+from rpy2.robjects.packages import importr
+from rpy2 import rinterface
 from utils.compositional_lotka_volterra import CompositionalLotkaVolterra
 from utils.generalized_lotka_volterra import GeneralizedLotkaVolterra
 from typing import Callable, List, Union
+
+
+# R_OUTPUT_FLAG = False
+
+# if not R_OUTPUT_FLAG:
+    # rutils = importr('utils')    
+    # robjects.r('sink("/dev/null")')
+
+converter_context = (
+    default_converter + numpy2ri.converter + pandas2ri.converter
+).context()
 
 
 def print_score(scores, metrics):
@@ -27,7 +41,10 @@ def remove_diag(x):
 
 
 def calc_nondiag_score(
-    prediction: np.ndarray, target: np.ndarray, metrics: Union[Callable, List[Callable]] = average_precision_score, verbose: bool = False
+    prediction: np.ndarray,
+    target: np.ndarray,
+    metrics: Union[Callable, List[Callable]] = average_precision_score,
+    verbose: bool = False,
 ) -> float:
     """
     Calculates the score of a given prediction against a target using the specified metric. Only the non-diagonal elements are used.
@@ -56,11 +73,11 @@ def calc_nondiag_score(
     n_vertices = prediction.shape[0]
     idx = ~np.eye(n_vertices, dtype=bool)
     target = target[idx]
-    prediction = prediction[idx]
+    prediction = np.abs(prediction[idx])
     if isinstance(metrics, List):
-        scores = [metric(target, prediction) for metric in metrics]
+        scores = [metric(target, np.nan_to_num(prediction)) for metric in metrics]
     else:
-        scores = metrics(target, prediction)
+        scores = metrics(target, np.nan_to_num(prediction))
     if verbose:
         print_score(scores, metrics)
     return scores
@@ -74,12 +91,18 @@ def correlation_score(abundance, adj, method="pearson", **kwargs):
     return calc_nondiag_score(cor, adj, **kwargs)
 
 
+correlation_score._method = "Pearson"
+
+
 def precision_matrix_score(abundance, adj, **kwargs):
     if not isinstance(abundance, pd.DataFrame):
         abundance = pd.DataFrame(abundance)
     cor = abundance.cov().to_numpy()
     prec = np.linalg.inv(cor)
     return calc_nondiag_score(prec, adj, **kwargs)
+
+
+precision_matrix_score._method = "Precision Matrix"
 
 
 def clv_score(abundance, adj, metrics=average_precision_score, verbose=False):
@@ -98,6 +121,9 @@ def clv_score(abundance, adj, metrics=average_precision_score, verbose=False):
     return scores
 
 
+clv_score._method = "cLV"
+
+
 def glv_score(abundance, adj, **kwargs):
     glv = GeneralizedLotkaVolterra([abundance], [np.arange(abundance.shape[0])])
     glv.set_regularizers(1e-3, 1e-3, 1e-3, 1e-3)
@@ -106,7 +132,36 @@ def glv_score(abundance, adj, **kwargs):
     return calc_nondiag_score(A, adj, **kwargs)
 
 
+glv_score._method = "gLV"
+
+
 def pcor_score(abundance, adj, **kwargs):
-    if not isinstance(abundance, pd.DataFrame):
-        abundance = pd.DataFrame(abundance)
-    
+    ppcor = importr("ppcor")
+    with converter_context:
+        network_pred_ppea = ppcor.pcor(abundance)["estimate"]
+    return calc_nondiag_score(network_pred_ppea, adj, **kwargs)
+
+
+pcor_score._method = "Partial Correlation"
+
+
+def sparcc_score(abundance, adj, **kwargs):
+    SpiecEasi = importr("SpiecEasi")
+    with converter_context:
+        network_pred_sparcc = SpiecEasi.sparcc(abundance)["Cor"]
+    return calc_nondiag_score(network_pred_sparcc, adj, **kwargs)
+
+
+sparcc_score._method = "SparCC"
+
+
+def speic_score(abundance, adj, **kwargs):
+    with converter_context:
+        robjects.globalenv["abundance"] = abundance
+        rcode = 'network_pred_speic = as.matrix(getOptMerge(SpiecEasi::spiec.easi(as.matrix(abundance), method="mb")))'
+        r(rcode)
+    network_pred_speic = np.array(robjects.globalenv["network_pred_speic"])
+    return calc_nondiag_score(network_pred_speic, adj, **kwargs)
+
+
+speic_score._method = "SpiecEasi"

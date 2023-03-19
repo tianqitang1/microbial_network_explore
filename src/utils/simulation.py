@@ -248,8 +248,8 @@ def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsam
     except NameError:
         seqtime = importr("seqtime")
 
-    nv_cv_rules = default_converter + numpy2ri.converter
-    with nv_cv_rules:
+    nv_cv_rules = default_converter+ numpy2ri.converter
+    with nv_cv_rules.context():
         abundance = seqtime.generateDataSet(time_points, M, count=num_taxa*1000, mode=4)
 
     abundance = abundance[:, ::downsample]
