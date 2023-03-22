@@ -10,6 +10,8 @@ docs/*.pdf
 docs/*.html
 hirano_etal/
 elsa/
+ipython_history.md
+random_score/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -140,4 +142,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-ipython_history.md
