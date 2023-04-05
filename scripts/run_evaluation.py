@@ -38,8 +38,8 @@ def main():
     n_vertices = 5
     avg_degree = 2
 
-    time_points = 30
-    time_step = 0.01
+    time_points = 1000
+    time_step = 0.05
     downsample = 1
     noise_var = 1e-3
     scale_simulation = 100
@@ -60,11 +60,24 @@ def main():
     
     normal_noise_df = pd.DataFrame(columns=['Method', 'average_precision_score', 'roc_auc_score', 'n_vertices', 'avg_degree', 'noise_var'])
 
-    n_vertices = [20, 50, 100]
-    avg_degree = [2, 5, 10]
-    noise_var = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1,]
+    # n_vertices = [20, 50, 100]
+    n_vertices = [50]
+    avg_degree = [5]
+    # noise_var = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1,]
+    noise_var = [1e-3]
+
+    subsample_num = 50
+
+    # TODO increase the number of time points
+    # TODO plot out the trend of the scores regarding the number of time points
+    # TODO increase the number of strength of interactions
+    # TODO plot out the trend of the scores regarding the number of strength or interactions
+    # TODO trend of the scores regarding the time steps
+    # TODO trend of the scores regarding the downsample rate
 
     evaluation_func = [correlation_score, precision_matrix_score, clv_score, glv_score, pcor_score, sparcc_score, speic_score]
+    # evaluation_func = [correlation_score, precision_matrix_score, clv_ , pcor_score, sparcc_score, speic_score]
+
     metrics = [average_precision_score, roc_auc_score]
 
     # nonoise_df = pd.DataFrame(columns=['Method', 'average_precision_score', 'roc_auc_score', 'n_vertices', 'avg_degree', 'noise_var'])
@@ -92,15 +105,20 @@ def main():
     for n, k, s in product(n_vertices, avg_degree, noise_var):
         adj, M = simulation.gen_graph(n, k, network_type=network_type, interaction_type=interaction_type)
 
-        z, x, abundance, _, _ = simulation.simulate_glv(time_points=time_points, downsample=downsample, adj=adj, M=M, noise=noise_var)
+        z, x, abundance, _, _ = simulation.simulate_glv(time_points=time_points, time_step=time_step, downsample=downsample, adj=adj, M=M, noise_var=s)
 
-        scores_df = evaluation(adj, abundance, evaluation_func, metrics=metrics, verbose=False)
+        idx = np.random.choice(z.shape[0], subsample_num, replace=False)
+        idx.sort()
+        z = z[idx, :]
+
+        scores_df = evaluation(adj, z, evaluation_func, metrics=metrics, verbose=False)
+        # scores_df = evaluation(adj, z, evaluation_func, metrics=metrics, verbose=False)
         scores_df['n_vertices'] = n
         scores_df['avg_degree'] = k
         scores_df['noise_var'] = s
-        misdeed_df = pd.concat([normal_noise_df, scores_df], axis=0)
+        misdeed_df = pd.concat([misdeed_df, scores_df], axis=0)
     
-    misdeed_df.to_csv('misdeed.csv', index=False)
+    misdeed_df.to_csv('random_score/misdeed.csv', index=False)
     # sns.barplot(x='n_vertices', y='roc_auc_score', hue='method', data=scores_df_all)
     # plt.show()
 

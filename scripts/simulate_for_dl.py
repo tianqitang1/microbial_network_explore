@@ -16,25 +16,25 @@ data = []
 
 network_types = ['random', 'small-world', 'scale-free']
 
-dataset_size = 100
+dataset_size = 500
 for i in range(dataset_size):
     # with nostdout():
     z, x, y, adj, M = simulate_glv(
-        num_taxa=20,
-        avg_degree=np.random.randint(1, 10),
-        time_points=50,
-        time_step=0.1,
+        num_taxa=50,
+        avg_degree=np.random.randint(5, 20),
+        time_points=10000,
+        time_step=0.5,
         downsample=1,
         noise_var=1e-3,
         network_type=np.random.choice(network_types),
         interaction_type='random',
         max_interaction_strength=1,
     )
-    data.append((y, adj))
+    data.append((y.T[np.newaxis, :, :], adj[np.newaxis, :, :]))
 
 abundance, adj = zip(*data)
-abundance = np.dstack(abundance)
-adj = np.dstack(adj)
+abundance = np.concatenate(abundance, axis=0)
+adj = np.concatenate(adj, axis=0)
 
 # Normalize abundance along the time axis
 abundance = abundance / np.sum(abundance, axis=2, keepdims=True)

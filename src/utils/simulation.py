@@ -192,10 +192,13 @@ def simulate_glv(num_taxa=20, avg_degree=10, time_points=1000, time_step=1e-2, d
     z, x, y = generator.generate(
         dt=time_step,
         noise_var=noise_var,
-        downsample=downsample,
+        # downsample=downsample, down sample is deprecated
     )
     z, x, y = z["mgx"], x["mgx"], y["mgx"]
     # z, x, y = z.T, x.T, y.T
+    z = z[::downsample]
+    x = x[::downsample]
+    y = y[::downsample]
     return z, x, y, adj, M
 
 
