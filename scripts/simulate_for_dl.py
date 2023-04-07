@@ -22,7 +22,7 @@ for i in range(dataset_size):
     z, x, y, adj, M = simulate_glv(
         num_taxa=50,
         avg_degree=np.random.randint(5, 20),
-        time_points=10000,
+        time_points=1000,
         time_step=0.5,
         downsample=1,
         noise_var=1e-3,

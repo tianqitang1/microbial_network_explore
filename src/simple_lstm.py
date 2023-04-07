@@ -51,12 +51,17 @@ class AttentionNet(torch.nn.Module):
         # self.linear = torch.nn.Linear(input_size, hidden_size)
         self.hidden_size = seq_len
         self.seq_len = seq_len
-        self.out = torch.nn.Linear(input_size * seq_len, output_size)
+        self.out = torch.nn.Linear(hidden_size * input_size, output_size)
         self.out2 = torch.nn.Linear(output_size, output_size)
 
-        self.Q = Parameter(torch.Tensor(hidden_size, hidden_size))
-        self.K = Parameter(torch.Tensor(hidden_size, hidden_size))
-        self.V = Parameter(torch.Tensor(hidden_size, hidden_size))
+        self.Q = Parameter(torch.Tensor(seq_len, hidden_size))
+        # self.K = Parameter(torch.Tensor(seq_len, hidden_size))
+        # self.V = Parameter(torch.Tensor(hidden_size, hidden_size))
+        self.K = self.Q
+        self.V = self.Q
+
+        self.layer_norm = torch.nn.LayerNorm(input_size)
+        # self.layer_norm = torch.nn.LayerNorm(seq_len)
 
         self.reset_parameters()
 
@@ -74,6 +79,7 @@ class AttentionNet(torch.nn.Module):
         QK = torch.matmul(Q, K.permute(0, 2, 1))
         QK = QK / np.sqrt(self.hidden_size)
         QK = F.softmax(QK, dim=-1)
+        # QK = F.sigmoid(QK)
         return QK, V
     
     def forward(self, x):
@@ -82,61 +88,111 @@ class AttentionNet(torch.nn.Module):
         """
         # x = x.permute(0, 2, 1)
 
-        QK, V = self.calc_QK(x)
+        # x = self.layer_norm(x.permute(0, 2, 1)).permute(0, 2, 1)
+        # x = self.layer_norm(x)
 
-        y_pred = torch.matmul(QK, V)
-        y_pred += x
-        y_pred = y_pred.reshape(y_pred.shape[0], -1)
-        y_pred = self.out(y_pred)
+        QK, V = self.calc_QK(x)
+        return QK
+
+        # y_pred = torch.matmul(QK, V)
+        # y_pred += x
+        # y_pred = y_pred.reshape(y_pred.shape[0], -1)
+        # y_pred = self.out(y_pred)
         # y_pred = F.sigmoid(y_pred)
         # y_pred = F.normalize(y_pred, dim=1)
-        y_pred = F.softmax(y_pred, dim=1)
-        return y_pred
+        # y_pred = F.softmax(y_pred, dim=1)
+        # return y_pred, QK
+
+def shuffle_along_axis(a, axis):
+    idx = np.random.rand(*a.shape).argsort(axis=axis)
+    return np.take_along_axis(a,idx,axis=axis)
 
 input_size = 50
-seq_len = 100
-hidden_size = seq_len
+seq_len = 500
+hidden_size = 256
 output_size = input_size
 
 abundance = np.load('d:\\microbial_network\\microbial_network_explore\\data\\abundance.npy')
 adj = np.load('d:\\microbial_network\\microbial_network_explore\\data\\adj.npy')
+adj_norm = adj / adj.sum(axis=1, keepdims=True)
 
 # def construct_batch(abundance, batch_size):
 
-# abundance = torch.from_numpy(abundance).float().to('cuda')
+abd_test = torch.from_numpy(abundance[[-1], :, :seq_len]).float().to('cuda')
+
+abundance = torch.from_numpy(abundance[:-2, :, :]).float().to('cuda')
+adj_norm = torch.from_numpy(adj_norm).float().to('cuda')
 
 prauc = []
 roauc = [] 
 
-model = AttentionNet(input_size, 100, hidden_size, output_size).to('cuda')
+model = AttentionNet(input_size, seq_len, hidden_size, output_size).to('cuda')
 
 # abd = torch.from_numpy(abundance[[0], :, :100]).float().to('cuda')
 # model(abd)
 
 loss_fn = torch.nn.MSELoss().to('cuda')
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+# loss_fn = torch.nn.BCELoss().to('cuda')
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)#, weight_decay=1e-2)
+# optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+# optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=1000, eta_min=1e-5, verbose=False)
+# scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1000, T_mult=1, eta_min=1e-5, verbose=False)
 
-epoch_num = 500
+epoch_num = 1000
 for epoch in range(epoch_num):
+    # Construct batch
+    idx = np.arange(abundance.shape[2]-seq_len-1)
+    idx = np.tile(idx, (abundance.shape[0], 1))
+    idx = shuffle_along_axis(idx, 1)
+
+    # shuffle sample
+    sample_idx = np.arange(abundance.shape[0])
+    np.random.shuffle(sample_idx)
+
     for i in range(abundance.shape[2]-seq_len-1):
         # x = abundance[:, :, i:i+seq_len]
         # y = abundance[:, :, i+seq_len+1]
-        x = torch.from_numpy(abundance[:, :, i:i+seq_len]).float().to('cuda')
-        y = torch.from_numpy(abundance[:, :, i+seq_len+1]).float().to('cuda')
-        y_pred = model(x)
-        loss = loss_fn(y_pred, y)
+
+        # x = abundance[sample_idx, :, idx[i]:idx[i]+seq_len]
+        # y = abundance[sample_idx, :, idx[i]+seq_len+1]
+        x = []
+        y = []
+        # y_adj = []
+        for j in range(abundance.shape[0]):
+            k = sample_idx[j]
+            x.append(abundance[k, :, idx[k, i]:idx[k, i]+seq_len])
+            y.append(abundance[k, :, idx[k, i]+seq_len+1])
+            # y_adj.append(adj_norm[k, :, :])
+        x = torch.stack(x).to('cuda')
+        y = torch.stack(y).to('cuda')
+        # y_adj = torch.stack(y_adj).to('cuda')
+        # y_adj = torch.from_numpy(adj[sample_idx, :, :]).float().to('cuda')
+        y_adj = adj_norm[sample_idx, :, :]
+
+        # x = torch.from_numpy(abundance[:, :, i:i+seq_len]).float().to('cuda')
+        # y = torch.from_numpy(abundance[:, :, i+seq_len+1]).float().to('cuda')
+        # y_pred, QK = model(x)
+        QK = model(x)
+        # loss = loss_fn(y_pred, y)
+        loss_adj = loss_fn(QK, y_adj)
+        # loss = loss + loss_adj
+        loss = loss_adj
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         # if i % 100 == 0:
         #     print(loss.item())
+        scheduler.step()
 
     print('epoch: ', epoch, 'loss: ', loss.item())
     # sample = abundance[[0], :, :seq_len]
-    sample = torch.from_numpy(abundance[[0], :, :seq_len]).float().to('cuda')
-    adj_pred= model.calc_QK(sample)[0].detach().cpu().numpy().squeeze()
+    sample = abd_test
+    # sample = torch.from_numpy(abundance[[0], :, :seq_len]).float().to('cuda')
+    with torch.no_grad():
+        adj_pred= model.calc_QK(sample)[0].detach().cpu().numpy().squeeze()# * adj[0, :, :].sum(axis=1, keepdims=True)
 
-    pr, ro = calc_nondiag_score(adj_pred, adj[0, :, :], metrics=[average_precision_score, roc_auc_score])
+    pr, ro = calc_nondiag_score(adj_pred, adj[-1, :, :], metrics=[average_precision_score, roc_auc_score], rowwise=True)
     print('prauc: ', pr, 'roauc: ', ro)
 
 # for idx in range(abundance.shape[0]):

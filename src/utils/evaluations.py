@@ -44,6 +44,7 @@ def calc_nondiag_score(
     prediction: np.ndarray,
     target: np.ndarray,
     metrics: Union[Callable, List[Callable]] = average_precision_score,
+    rowwise: bool = False,
     verbose: bool = False,
 ) -> float:
     """
@@ -70,14 +71,24 @@ def calc_nondiag_score(
     - The input arrays must have the same shape.
 
     """
-    n_vertices = prediction.shape[0]
-    idx = ~np.eye(n_vertices, dtype=bool)
-    target = target[idx]
-    prediction = np.abs(prediction[idx])
-    if isinstance(metrics, List):
-        scores = [metric(target, np.nan_to_num(prediction)) for metric in metrics]
+    if rowwise:
+        if isinstance(metrics, List):
+            scores = [np.mean([metric(target[i, np.arange(target.shape[1])!=i], prediction[i, np.arange(target.shape[1])!=i])
+            for i in range(target.shape[0])])
+            for metric in metrics]
+        else:
+            scores = np.mean([metrics(target[i, np.arange(target.shape[1])!=i], prediction[i, np.arange(target.shape[1])!=i])
+            for i in range(target.shape[0])])
+        
     else:
-        scores = metrics(target, np.nan_to_num(prediction))
+        n_vertices = prediction.shape[0]
+        idx = ~np.eye(n_vertices, dtype=bool)
+        target = target[idx]
+        prediction = np.abs(prediction[idx])
+        if isinstance(metrics, List):
+            scores = [metric(target, np.nan_to_num(prediction)) for metric in metrics]
+        else:
+            scores = metrics(target, np.nan_to_num(prediction))
     if verbose:
         print_score(scores, metrics)
     return scores
