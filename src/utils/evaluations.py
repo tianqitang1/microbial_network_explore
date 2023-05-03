@@ -176,3 +176,12 @@ def speic_score(abundance, adj, **kwargs):
 
 
 speic_score._method = "SpiecEasi"
+
+
+def baseline_score(abundance, adj, **kwargs):
+    n = abundance.shape[1]
+    pred = np.random.rand(n, n)
+    return calc_nondiag_score(pred, adj, **kwargs)
+
+
+baseline_score._method = "Baseline"

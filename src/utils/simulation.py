@@ -261,6 +261,10 @@ def simulate_noiseless_glv(num_taxa=20, avg_degree=10, time_points=1000, downsam
     return abundance, adj, M
 
 
+def simulate_steady_state(num_taxa=20, avg_degree=10, adj=None, M=None, **kwargs):
+    pass
+
+
 def test_seed():
     np.random.seed(42)
     print(np.random.rand(10))

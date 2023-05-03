@@ -260,4 +260,20 @@ The other methods didn't work.
 So far we can see that the trend of AUROC score for gLV conforms to our intuition.
 For the next step, I would like to explore the reason that cLV not working on the compositional data, as I talked about it before, the implementation for cLV is not quite well and I would like to see if I can improve it, because theoretically it should be able to work on compositional data.
 
+
+## April 13th 2023 report
+
+Until now from our last meeting, I have tried center-log ratio (clr) transformation, additive-log ratio (alr) transformation, to preprocess the relative abundance data, and none of them brought any significant improvement to the performance of the methods.
+Isometric-log ratio (ilr) transformation is not used because it totally projects the datapoints into a totally different space and we cannot interpret the result out of it.
+The result is shown below
+
+![AUROC score with no transformation](plots/rel_org.png)
+
+![AUROC score with clr transformation](plots/rel_clr.png)
+
+![AUROC score with alr transformation](plots/rel_alr.png)
+
+I looked into the scores of these methods, and the highest score was all below 0.57.
+I also developed a very prototyped version of a neural network with self-attention to predict the interaction, the reslt was only slightly better than the current methods with 0.58 for 100 timepoints and 0.60 for 500 timepoints.
+
 # References

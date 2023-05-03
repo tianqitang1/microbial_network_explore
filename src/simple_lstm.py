@@ -49,7 +49,7 @@ class AttentionNet(torch.nn.Module):
         super(AttentionNet, self).__init__()
         self.hidden_size = hidden_size
         # self.linear = torch.nn.Linear(input_size, hidden_size)
-        self.hidden_size = seq_len
+        # self.hidden_size = seq_len
         self.seq_len = seq_len
         self.out = torch.nn.Linear(hidden_size * input_size, output_size)
         self.out2 = torch.nn.Linear(output_size, output_size)
@@ -91,6 +91,13 @@ class AttentionNet(torch.nn.Module):
         # x = self.layer_norm(x.permute(0, 2, 1)).permute(0, 2, 1)
         # x = self.layer_norm(x)
 
+        # x = x + 0.5
+
+        # x = x / x.sum(dim=2, keepdim=True)
+
+        # gm = torch.exp(torch.mean(torch.log(x), dim=2, keepdim=True))
+        # x = x / gm
+
         QK, V = self.calc_QK(x)
         return QK
 
@@ -108,8 +115,8 @@ def shuffle_along_axis(a, axis):
     return np.take_along_axis(a,idx,axis=axis)
 
 input_size = 50
-seq_len = 500
-hidden_size = 256
+seq_len = 100
+hidden_size = 1024
 output_size = input_size
 
 abundance = np.load('d:\\microbial_network\\microbial_network_explore\\data\\abundance.npy')
@@ -139,36 +146,59 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)#, weight_decay=1e-2)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=1000, eta_min=1e-5, verbose=False)
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1000, T_mult=1, eta_min=1e-5, verbose=False)
 
-epoch_num = 1000
+epoch_num = 500
+abundance_shape0, abundance_shape2 = abundance.shape[0], abundance.shape[2]
+
+abundance = abundance + 0.5
+abundance = abundance / abundance.sum(dim=2, keepdim=True)
+gm = torch.exp(torch.mean(torch.log(abundance), dim=2, keepdim=True))
+abundance = torch.log(abundance / gm)
+
 for epoch in range(epoch_num):
     # Construct batch
-    idx = np.arange(abundance.shape[2]-seq_len-1)
-    idx = np.tile(idx, (abundance.shape[0], 1))
+    idx = np.arange(abundance_shape2 - seq_len - 1)
+    idx = np.tile(idx, (abundance_shape0, 1))
     idx = shuffle_along_axis(idx, 1)
 
     # shuffle sample
-    sample_idx = np.arange(abundance.shape[0])
+    sample_idx = np.arange(abundance_shape0)
     np.random.shuffle(sample_idx)
 
-    for i in range(abundance.shape[2]-seq_len-1):
-        # x = abundance[:, :, i:i+seq_len]
-        # y = abundance[:, :, i+seq_len+1]
+    # Expand sample_idx
+    sample_idx_expanded = sample_idx[:, None, None]
 
-        # x = abundance[sample_idx, :, idx[i]:idx[i]+seq_len]
-        # y = abundance[sample_idx, :, idx[i]+seq_len+1]
-        x = []
-        y = []
-        # y_adj = []
-        for j in range(abundance.shape[0]):
-            k = sample_idx[j]
-            x.append(abundance[k, :, idx[k, i]:idx[k, i]+seq_len])
-            y.append(abundance[k, :, idx[k, i]+seq_len+1])
-            # y_adj.append(adj_norm[k, :, :])
+    for i in range(abundance_shape2 - seq_len - 1):
+        # # Calculate the start and end indices for slicing
+        # start_idx = idx[:, i:i+1]
+        # end_idx = start_idx + seq_len
+        # # Calculate the index for the y tensor
+        # y_idx = end_idx + 1
+        # # Create meshgrid for advanced indexing
+        # sample_idx_grid, start_idx_grid = np.meshgrid(sample_idx, start_idx, indexing='ij')
+        # _, end_idx_grid = np.meshgrid(sample_idx, end_idx, indexing='ij')
+        # _, y_idx_grid = np.meshgrid(sample_idx, y_idx, indexing='ij')
+
+        # # Perform advanced indexing using the meshgrids
+        # x = abundance[sample_idx_grid, :, start_idx_grid:end_idx_grid]
+        # y = abundance[sample_idx_grid, :, y_idx_grid]
+
+        # Use list comprehensions to construct x and y
+        x = [abundance[k, :, idx[k, i]:idx[k, i] + seq_len] for k in sample_idx]
+        y = [abundance[k, :, idx[k, i] + seq_len + 1] for k in sample_idx]
+        # Move the tensors to GPU (if available)
         x = torch.stack(x).to('cuda')
         y = torch.stack(y).to('cuda')
-        # y_adj = torch.stack(y_adj).to('cuda')
-        # y_adj = torch.from_numpy(adj[sample_idx, :, :]).float().to('cuda')
         y_adj = adj_norm[sample_idx, :, :]
+
+        # x = []
+        # y = []
+        # for j in range(abundance.shape[0]):
+        #     k = sample_idx[j]
+        #     x.append(abundance[k, :, idx[k, i]:idx[k, i]+seq_len])
+        #     y.append(abundance[k, :, idx[k, i]+seq_len+1])
+        # x = torch.stack(x).to('cuda')
+        # y = torch.stack(y).to('cuda')
+        # y_adj = adj_norm[sample_idx, :, :]
 
         # x = torch.from_numpy(abundance[:, :, i:i+seq_len]).float().to('cuda')
         # y = torch.from_numpy(abundance[:, :, i+seq_len+1]).float().to('cuda')
