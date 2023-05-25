@@ -90,8 +90,10 @@ def gen_graph(
     M = np.zeros((n, n))
     for i, j in edge_list:
         if interaction_type == "random":
-            M[i, j] = np.random.uniform(-max_interaction_strength, max_interaction_strength)
-            M[j, i] = np.random.uniform(-max_interaction_strength, max_interaction_strength)
+            # M[i, j] = np.random.uniform(-max_interaction_strength, max_interaction_strength)
+            # M[j, i] = np.random.uniform(-max_interaction_strength, max_interaction_strength)
+            M[i, j] = max_interaction_strength * np.random.choice([-1, 1])
+            M[j, i] = max_interaction_strength * np.random.choice([-1, 1])
         elif interaction_type == "mutualism":
             M[i, j] = np.random.uniform(0, max_interaction_strength)
             M[j, i] = np.random.uniform(0, max_interaction_strength)

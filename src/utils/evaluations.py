@@ -105,6 +105,13 @@ def correlation_score(abundance, adj, method="pearson", **kwargs):
 correlation_score._method = "Pearson"
 
 
+def spearman_score(abundance, adj, **kwargs):
+    return correlation_score(abundance, adj, method="spearman", **kwargs)
+
+
+spearman_score._method = "Spearman"
+
+
 def precision_matrix_score(abundance, adj, **kwargs):
     if not isinstance(abundance, pd.DataFrame):
         abundance = pd.DataFrame(abundance)
@@ -153,7 +160,17 @@ def pcor_score(abundance, adj, **kwargs):
     return calc_nondiag_score(network_pred_ppea, adj, **kwargs)
 
 
-pcor_score._method = "Partial Correlation"
+pcor_score._method = "Partial Pearson"
+
+
+def pspe_score(abundance, adj, **kwargs):
+    ppcor = importr("ppcor")
+    with converter_context:
+        network_pred_ppea = ppcor.pcor(abundance, method='spearman')["estimate"]
+    return calc_nondiag_score(network_pred_ppea, adj, **kwargs)
+
+
+pspe_score._method = "Partial Spearman"
 
 
 def sparcc_score(abundance, adj, **kwargs):
@@ -176,6 +193,17 @@ def speic_score(abundance, adj, **kwargs):
 
 
 speic_score._method = "SpiecEasi"
+
+
+def cclasso_score(abundance, adj, **kwargs):
+    abundance = abundance.T
+    NetCoMi = importr("NetCoMi")
+    with converter_context:
+        network_pred_cclasso = NetCoMi.cclasso(abundance, counts=True, pseudo=0.001)
+    return calc_nondiag_score(network_pred_cclasso, adj, **kwargs)
+
+
+cclasso_score._method = "CCLasso"
 
 
 def baseline_score(abundance, adj, **kwargs):
