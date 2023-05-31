@@ -16,12 +16,6 @@ from utils.generalized_lotka_volterra import GeneralizedLotkaVolterra
 from typing import Callable, List, Union
 
 
-# R_OUTPUT_FLAG = False
-
-# if not R_OUTPUT_FLAG:
-    # rutils = importr('utils')    
-    # robjects.r('sink("/dev/null")')
-
 converter_context = (
     default_converter + numpy2ri.converter + pandas2ri.converter
 ).context()
