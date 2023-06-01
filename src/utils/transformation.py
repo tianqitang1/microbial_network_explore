@@ -35,6 +35,8 @@ def clr_transform(data):
 
     return clr
 
+clr_transform._method = "CLR"
+
 
 def alr_transform(data, ref_component=0):
     """
@@ -214,8 +216,8 @@ def qn_transform(ref, data):
     importr("preprocessCore")
     ref = ref.T
     data = data.T
-    # log_ref = np.log(ref)
-    # log_data = np.log(data)
+    log_ref = np.log(ref)
+    log_data = np.log(data)
     ref_quantiles = r['normalize.quantiles.determine.target'](x=robjects.r.matrix(robjects.FloatVector(log_ref)))
     with converter_context:
         qn = r['normalize.quantiles.use.target'](log_data, target=ref_quantiles)
@@ -225,8 +227,8 @@ qn_transform._method = "QN"
 
 def fsqn_trasform(ref, data):
     importr('FSQN')
-    # log_ref = np.log(ref)
-    # log_data = np.log(data)
+    log_ref = np.log(ref)
+    log_data = np.log(data)
     with converter_context:
         fsqn = r['quantileNormalizeByFeature'](matrix_to_normalize=log_data, target_distribution_matrix=log_ref)
     return fsqn
@@ -235,13 +237,80 @@ fsqn_trasform._method = "FSQN"
 
 def bmc_transform(ref, data):
     importr('pamr')
-    # log_ref = np.log(ref)
-    # log_data = np.log(data)
+    ref = ref.T
+    data = data.T
+    log_ref = np.log(ref)
+    log_data = np.log(data)
+    ref_data = np.concatenate((log_ref, log_data), axis=1)
     with converter_context:
-        bmc = r['bmc'](log_data, log_ref)
+        robjects.globalenv['log_ref'] = log_ref
+        robjects.globalenv['log_data'] = log_data
+        robjects.globalenv['merged'] = ref_data
+        r('batch_factor <- factor(c(rep(1, ncol(log_ref)), rep(2, ncol(log_data))))')
+        r('correct_merged <- as.data.frame(pamr.batchadjust(list(x=as.matrix(merged),batchlabels=batch_factor))$x)')
+        bmc = robjects.globalenv['correct_merged']
     return bmc.to_numpy()[:, log_ref.shape[1]:].T
 
 bmc_transform._method = "BMC"
+
+
+def limma_transform(ref, data):
+    importr('limma')
+    ref = ref.T
+    data = data.T
+    log_ref = np.log(ref)
+    log_data = np.log(data)
+    ref_data = np.concatenate((log_ref, log_data), axis=1)
+    with converter_context:
+        robjects.globalenv['log_ref'] = log_ref
+        robjects.globalenv['log_data'] = log_data
+        robjects.globalenv['merged'] = ref_data
+        r('batch_factor <- factor(c(rep(1, ncol(log_ref)), rep(2, ncol(log_data))))')
+        r('correct_merged <- removeBatchEffect(merged, batch_factor)')
+        limma = robjects.globalenv['correct_merged']
+    return limma[:, log_ref.shape[1]:].T
+
+limma_transform._method = "LIMMA"
+
+def combat_transform(ref, data):
+    importr('sva')
+    ref = ref.T
+    data = data.T
+    log_ref = np.log(ref)
+    log_data = np.log(data)
+    ref_data = np.concatenate((log_ref, log_data), axis=1)
+    with converter_context:
+        robjects.globalenv['log_ref'] = log_ref
+        robjects.globalenv['log_data'] = log_data
+        robjects.globalenv['merged'] = ref_data
+        r('batch_factor <- factor(c(rep(1, ncol(log_ref)), rep(2, ncol(log_data))))')
+        # r('correct_merged <- ComBat(dat=merged, batch=batch_factor, par.prior=TRUE, prior.plots=FALSE)')
+        r('correct_merged <- ComBat(merged, batch=batch_factor, ref.batch=1)')
+        combat = robjects.globalenv['correct_merged']
+    return combat[:, log_ref.shape[1]:].T
+
+combat_transform._method = "ComBat"
+
+
+def conqur_transform(ref, data):
+    importr('ConQuR')
+    importr('foreach')
+    ref = ref.T
+    data = data.T
+    log_ref = np.log(ref)
+    log_data = np.log(data)
+    ref_data = np.concatenate((log_ref, log_data), axis=1)
+    with converter_context:
+        robjects.globalenv['log_ref'] = log_ref
+        robjects.globalenv['log_data'] = log_data
+        robjects.globalenv['merged'] = ref_data
+        r('covariates <- data.frame(covariate=rep(1,ncol(merged)))')
+        r('batch_factor <- factor(c(rep(1, ncol(log_ref)), rep(2, ncol(log_data))))')
+        r('correct_merged <- ConQuR(tax_tab=as.data.frame(t(merged)),batchid=batch_factor,batch_ref="1",covariates=covariates,simple_match=T)')
+        conqur = robjects.globalenv['correct_merged']
+    return conqur[log_ref.shape[1]:, :]
+
+conqur_transform._method = "ConQuR"
 
 
 def no_transform(data):
