@@ -117,13 +117,14 @@ class Rel_LV(nn.Module):
         self.g = nn.Parameter(torch.rand(n_vertices).float())
         self.interaction = nn.Parameter(torch.rand(n_vertices, n_vertices).float())
 
-    def forward(self, x):
-        interaction = torch.matmul(self.interaction, x[:, :, None]).squeeze(-1)
-        inter_species = torch.mul(x, interaction)
-        growth = torch.mul(x, self.g + 1)
-        x = inter_species + growth
-        x = x / torch.sum(x, dim=1, keepdim=True)
-        return x
+    def forward(self, x, steps=1):
+        for i in range(steps):
+            interaction = torch.matmul(self.interaction, x[i:i+1, :, None]).squeeze(-1)
+            inter_species = torch.mul(x[i:i+1, :], interaction)
+            growth = torch.mul(x[i:i+1, :], self.g + 1)
+            x[i:i+1, :] = inter_species + growth
+        y = x / torch.sum(x, dim=1, keepdim=True)
+        return y
 
 
 class Compo_LV(nn.Module):
