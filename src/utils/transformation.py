@@ -121,6 +121,22 @@ def ilr_transform(data):
     return ilr
 
 
+def uq_transform(data):
+    upper_quartile = np.percentile(data, 75, axis=1, keepdims=True)
+    return data / upper_quartile
+
+
+uq_transform._method = "UQ"
+
+
+def median_transform(data):
+    median = np.median(data, axis=1, keepdims=True)
+    return data / median
+
+
+median_transform._method = "Median"
+
+
 def css_transform(data):
     data = data.T
     with converter_context:

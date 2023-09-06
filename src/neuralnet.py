@@ -107,6 +107,8 @@ class Abs_LV(nn.Module):
         interaction = torch.matmul(self.interaction, x[:, :, None]).squeeze(-1)
         inter_species = torch.mul(x, interaction)
         growth = torch.mul(x, self.g + 1)
+        # growth = torch.mul(x, self.g)
+        # x = x * (1 + (inter_species + growth))
         x = inter_species + growth
         return x
     
@@ -128,5 +130,40 @@ class Rel_LV(nn.Module):
 
 
 class Compo_LV(nn.Module):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, n_vertices, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+        self.g = nn.Parameter(torch.rand(n_vertices).float())
+        self.interaction = torch.rand(n_vertices, n_vertices).float()
+        # self.interaction = torch.zeros(n_vertices, n_vertices).float()
+        # self.interaction.fill_diagonal_(1)
+        self.interaction = nn.Parameter(self.interaction)
+        self.activation = nn.Hardshrink(0.5)
+
+    # def forward(self, x, steps=1):
+    #     x_t = []
+    #     x_next = x
+    #     for i in range(steps):
+    #         interaction = torch.matmul(self.interaction, x_next.reshape(-1, 1)).squeeze(-1)
+    #         inter_species = torch.mul(x, interaction)
+    #         growth = torch.mul(x, self.g + 1)
+    #         # x_next = inter_species + growth
+    #         # x_next = x_next + (inter_species + growth) * 0.1
+    #         x_next = inter_species + growth
+    #         x_t.append(x_next)
+    #     y = torch.stack(x_t, dim=0)
+    #     y = y / torch.sum(y, dim=1, keepdim=True)
+    #     return x, y
+
+    def forward(self, x):
+        interaction = self.activation(self.interaction)
+        interaction = torch.matmul(interaction, x.reshape(-1, 1)).squeeze(-1)
+        inter_species = torch.mul(x, interaction)
+        # growth = torch.mul(x, self.g + 1)
+        growth = torch.mul(x, self.g)
+        # x_next = inter_species + growth
+        x = x + (inter_species + growth)# * 0.01
+        # x = inter_species + growth
+        y = x / torch.sum(x)
+        return x, y
+

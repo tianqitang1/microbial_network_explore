@@ -207,3 +207,20 @@ def baseline_score(abundance, adj, **kwargs):
 
 
 baseline_score._method = "Baseline"
+
+
+import torch
+from neuralnet import AttentionNet, DNN
+# model = AttentionNet(10, 500, 1024, 10).to('cuda')
+model = DNN(50, 500, 1024).to('cuda')
+model.load_state_dict(torch.load('d:\\microbial_network\\microbial_network_explore\\data\\attention_model.pt'))
+def dl_score(abundance, adj, **kwargs):
+    abundance = abundance.T
+    abundance = torch.from_numpy(abundance).float().to('cuda')
+    abundance = abundance[None, :, :]
+    # adj_pred= model.calc_QK(abundance)[0].detach().cpu().numpy().squeeze()
+    adj_pred = model(abundance).detach().cpu().numpy().squeeze()
+    return calc_nondiag_score(adj_pred, adj, **kwargs)
+
+
+dl_score._method = "Attention"

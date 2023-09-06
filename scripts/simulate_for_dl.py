@@ -16,16 +16,17 @@ data = []
 
 network_types = ['random', 'small-world', 'scale-free']
 
-dataset_size = 500
+dataset_size = 1000
 for i in range(dataset_size):
     # with nostdout():
     z, x, y, adj, M = simulate_glv(
         num_taxa=50,
-        avg_degree=np.random.randint(5, 20),
+        # avg_degree=np.random.randint(5, 20),
+        avg_degree=2,
         time_points=1000,
-        time_step=0.5,
+        time_step=0.01,
         downsample=1,
-        noise_var=1e-3,
+        noise_var=0,
         network_type=np.random.choice(network_types),
         interaction_type='random',
         max_interaction_strength=1,
